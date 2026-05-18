@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic Choreography</title>
+    <style>
+        :root {
+            --bg-color: #030712; /* Deepest black/blue */
+            --panel-bg: rgba(15, 23, 42, 0.85);
+            --text-color: #e2e8f0;
+            --accent: #38bdf8;
+            --accent-hover: #0284c7;
+            --border: rgba(51, 65, 85, 0.6);
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(ellipse at bottom, #111827 0%, #030712 100%);
+            color: var(--text-color);
+            display: flex; height: 100vh; overflow: hidden;
+        }
+
+        /* Sidebar Controls */
+        .controls {
+            width: 320px; background-color: var(--panel-bg);
+            border-right: 1px solid var(--border); padding: 24px;
+            display: flex; flex-direction: column; gap: 15px;
+            overflow-y: auto; box-shadow: 4px 0 30px rgba(0,0,0,0.9);
+            z-index: 10; backdrop-filter: blur(15px);
+        }
+
+        .controls::-webkit-scrollbar { width: 6px; }
+        .controls::-webkit-scrollbar-track { background: transparent; }
+        .controls::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+
+        h2 {
+            margin: 0 0 5px 0; font-size: 22px; color: #fff;
+            text-transform: uppercase; letter-spacing: 2px;
+            text-shadow: 0 0 15px rgba(56, 189, 248, 0.6);
+            line-height: 1.2;
+        }
+        
+        .author-caption {
+            font-size: 10px; color: rgba(148, 163, 184, 0.8);
+            text-transform: uppercase; letter-spacing: 2px;
+            margin-top: -12px; margin-bottom: 5px;
+            text-align: left; font-style: italic;
+        }
+
+        .control-group { display: flex; flex-direction: column; gap: 6px; }
+        .row-group { display: flex; flex-direction: row; align-items: center; gap: 10px; }
+
+        label {
+            font-size: 12px; font-weight: 700; color: #94a3b8;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+
+        select, input[type="range"], input[type="number"] {
+            width: 100%; padding: 10px; background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border); color: #fff; border-radius: 8px;
+            outline: none; font-size: 14px; box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent); }
+        select:focus, input[type="number"]:focus { border-color: var(--accent); }
+
+        .value-display { font-size: 12px; color: var(--accent); text-align: right; margin-top: -4px; }
+
+        .buttons { display: flex; gap: 10px; margin-top: 5px; }
+        
+        button {
+            flex: 1; padding: 12px; background-color: var(--accent);
+            color: #fff; border: none; border-radius: 8px;
+            font-weight: bold; cursor: pointer; transition: all 0.2s;
+            text-transform: uppercase; letter-spacing: 1px; font-size: 11px;
+        }
+        button:hover { background-color: var(--accent-hover); box-shadow: 0 0 15px rgba(56, 189, 248, 0.4); }
+        
+        button.secondary { background-color: transparent; border: 1px solid var(--border); color: var(--text-color); }
+        button.secondary:hover { background-color: rgba(255,255,255,0.1); box-shadow: none; }
+        
+        button.export { background-color: #10b981; }
+        button.export:hover { background-color: #059669; box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
+        
+        button.record { background-color: #8b5cf6; }
+        button.record:hover { background-color: #7c3aed; box-shadow: 0 0 15px rgba(139, 92, 246, 0.4); }
+        
+        button.record.recording { background-color: #ef4444; animation: pulse 1.5s infinite; }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        /* Credits Footer */
+        .credits-footer {
+            margin-top: auto;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
+            font-size: 11px;
+            color: rgba(148, 163, 184, 0.7);
+            text-align: center;
+            line-height: 1.6;
+        }
+        .credits-footer a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .credits-footer a:hover {
+            color: var(--accent-hover);
+            text-decoration: underline;
+        }
+        .credits-footer p { margin: 4px 0; }
+
+        /* Workspace & Canvas */
+        .workspace { flex: 1; position: relative; display: flex; flex-direction: column; }
+        .canvas-container { flex: 1; position: relative; overflow: hidden; }
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        #starsCanvas { z-index: 0; }
+        #simCanvas { z-index: 1; mix-blend-mode: screen; }
+
+        /* Legend */
+        .legend {
+            position: absolute; top: 30px; right: 30px;
+            background: rgba(15, 23, 42, 0.75); padding: 20px 25px;
+            border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(12px); z-index: 5; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+        }
+        .legend-title { font-size: 16px; font-weight: bold; color: #fff; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 8px; }
+        .legend-item { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; font-size: 15px; font-weight: 500; }
+        .legend-item:last-child { margin-bottom: 0; }
+        .legend-color { width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 10px currentColor; }
+
+        /* Graph & Synodic Panel */
+        .bottom-panel {
+            height: 140px; background: rgba(10, 15, 25, 0.85);
+            border-top: 1px solid rgba(255,255,255,0.1); display: flex; z-index: 5;
+            backdrop-filter: blur(10px);
+        }
+        .graph-container { flex: 1; padding: 10px 20px; display: flex; flex-direction: column; position: relative; }
+        .data-panel {
+            width: 250px; border-left: 1px solid rgba(255,255,255,0.1);
+            padding: 15px 25px; display: flex; flex-direction: column; justify-content: center;
+        }
+        .panel-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 5px; }
+        .data-value { font-size: 22px; font-weight: bold; color: var(--accent); margin-bottom: 10px; text-shadow: 0 0 10px rgba(56, 189, 248, 0.3); }
+        #distanceGraph { flex: 1; width: 100%; height: 100%; position: relative; }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <h2>Cosmic Choreography</h2>
+        <div class="author-caption">built by Chandrakamal</div>
+        
+        <div class="control-group">
+            <label for="presetSelect">Famous Presets</label>
+            <select id="presetSelect">
+                <option value="custom">-- Custom Selection --</option>
+                <option value="earth_venus">Earth & Venus (5-Petal Rose)</option>
+                <option value="jupiter_saturn">Jupiter & Saturn (Great Conjunction)</option>
+                <option value="uranus_neptune">Uranus & Neptune</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="planet1">Planet 1</label>
+            <select id="planet1"></select>
+        </div>
+
+        <div class="control-group">
+            <label for="planet2">Planet 2</label>
+            <select id="planet2"></select>
+        </div>
+
+        <div class="control-group">
+            <label for="refFrame">Reference Frame</label>
+            <select id="refFrame">
+                <option value="heliocentric">Heliocentric (Sun Center)</option>
+                <option value="geocentric">Planet 1 Centered</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="targetYears">Stop After (Earth Years)</label>
+            <input type="number" id="targetYears" placeholder="Leave empty for infinite" min="0" step="0.1">
+        </div>
+
+        <div class="control-group">
+            <label for="speed">Simulation Speed</label>
+            <input type="range" id="speed" min="0.001" max="0.1" step="0.001" value="0.02">
+        </div>
+
+        <div class="row-group">
+            <input type="checkbox" id="audioToggle">
+            <label for="audioToggle" style="margin:0; cursor:pointer;">Enable Audio</label>
+        </div>
+
+        <div style="height: 1px; background: var(--border); margin: 5px 0;"></div>
+
+        <div class="control-group">
+            <label for="historyScrubber">Time Scrubber (Rewind History)</label>
+            <input type="range" id="historyScrubber" min="0" max="0" value="0" step="1">
+        </div>
+
+        <div class="row-group">
+            <input type="checkbox" id="autoRemove">
+            <label for="autoRemove" style="margin:0; cursor:pointer;">Auto-Remove Old Lines</label>
+        </div>
+
+        <div class="control-group">
+            <label for="maxLines">Keep Last N Lines</label>
+            <input type="range" id="maxLines" min="100" max="5000" step="100" value="2000">
+            <div class="value-display" id="linesDisplay">2000</div>
+        </div>
+
+        <div class="buttons">
+            <button id="playPauseBtn">Play</button>
+            <button class="secondary" id="clearBtn">Clear Lines</button>
+        </div>
+        <div class="buttons">
+            <button class="export" id="exportBtn">Export PNG</button>
+            <button class="record" id="recordBtn">Record Video</button>
+        </div>
+
+        <!-- NEW CREDITS FOOTER -->
+        <div class="credits-footer">
+            <p>Contact: <a href="mailto:chandrakamal303@gmail.com">chandrakamal303@gmail.com</a></p>
+            <p>Repo: <a href="https://github.com/Chandrakamal07/Planetary-Path-Tracing" target="_blank">GitHub</a></p>
+            <p>&copy; 2026 Kamal. All rights reserved.</p>
+        </div>
+    </div>
+
+    <div class="workspace">
+        <div class="canvas-container" id="canvasContainer">
+            <canvas id="starsCanvas"></canvas>
+            <canvas id="simCanvas"></canvas>
+            
+            <div class="legend">
+                <div class="legend-title" id="simTimeDisplay">Time: 0.00 Years</div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background:#fbbf24; color:#fbbf24;"></div> <span>Sun</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" id="legP1Color"></div> <span id="legP1Name">Planet 1</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" id="legP2Color"></div> <span id="legP2Name">Planet 2</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bottom-panel">
+            <div class="graph-container">
+                <div class="panel-title">Relative Distance Over Time</div>
+                <canvas id="distanceGraph"></canvas>
+            </div>
+            <div class="data-panel">
+                <div class="panel-title">Synodic Period</div>
+                <div class="data-value" id="synodicDisplay">0.00 Yrs</div>
+                <div class="panel-title">Conjunctions</div>
+                <div class="data-value" id="conjunctionDisplay">0</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const MathPI180 = Math.PI / 180;
+        const planets = {
+            "Mercury": { R: 0.387, T: 0.241, color: "#a8a29e", e: 0.2056, i: 7.0 * MathPI180 },
+            "Venus":   { R: 0.723, T: 0.615, color: "#f59e0b", e: 0.0067, i: 3.4 * MathPI180 },
+            "Earth":   { R: 1.000, T: 1.000, color: "#3b82f6", e: 0.0167, i: 0.0 },
+            "Mars":    { R: 1.524, T: 1.881, color: "#ef4444", e: 0.0934, i: 1.85 * MathPI180 },
+            "Jupiter": { R: 5.204, T: 11.862, color: "#f97316", e: 0.0489, i: 1.3 * MathPI180 },
+            "Saturn":  { R: 9.582, T: 29.457, color: "#fef08a", e: 0.0565, i: 2.49 * MathPI180 },
+            "Uranus":  { R: 19.220, T: 84.01, color: "#2dd4bf", e: 0.0463, i: 0.77 * MathPI180 },
+            "Neptune": { R: 30.050, T: 164.8, color: "#4f46e5", e: 0.0095, i: 1.77 * MathPI180 }
+        };
+
+        const container = document.getElementById('canvasContainer');
+        const simCanvas = document.getElementById('simCanvas'), ctx = simCanvas.getContext('2d');
+        const starsCanvas = document.getElementById('starsCanvas'), starsCtx = starsCanvas.getContext('2d');
+        const graphCanvas = document.getElementById('distanceGraph'), graphCtx = graphCanvas.getContext('2d');
+
+        const p1Select = document.getElementById('planet1'), p2Select = document.getElementById('planet2');
+        const presetSelect = document.getElementById('presetSelect'), refFrameSelect = document.getElementById('refFrame');
+        const targetYearsInput = document.getElementById('targetYears');
+        const speedSlider = document.getElementById('speed'), maxLinesSlider = document.getElementById('maxLines');
+        const autoRemoveCheckbox = document.getElementById('autoRemove');
+        const historyScrubber = document.getElementById('historyScrubber'), linesDisplay = document.getElementById('linesDisplay');
+        const playPauseBtn = document.getElementById('playPauseBtn'), clearBtn = document.getElementById('clearBtn');
+        const exportBtn = document.getElementById('exportBtn'), recordBtn = document.getElementById('recordBtn');
+        const audioToggle = document.getElementById('audioToggle');
+        
+        const simTimeDisplay = document.getElementById('simTimeDisplay');
+        const synodicDisplay = document.getElementById('synodicDisplay'), conjunctionDisplay = document.getElementById('conjunctionDisplay');
+        const legP1Color = document.getElementById('legP1Color'), legP1Name = document.getElementById('legP1Name');
+        const legP2Color = document.getElementById('legP2Color'), legP2Name = document.getElementById('legP2Name');
+
+        let time = 0, isPlaying = false; 
+        let drawnLines = [], distanceHistory = [];
+        let animationId;
+        let conjunctionCount = 0, lastAngleDiff = null;
+
+        let audioCtx, oscillator, gainNode;
+        let mediaRecorder, recordedChunks = [], isRecording = false;
+
+        Object.keys(planets).forEach(p => {
+            p1Select.add(new Option(p, p, false, p === "Earth"));
+            p2Select.add(new Option(p, p, false, p === "Venus"));
+        });
+
+        function resizeCanvases() {
+            const rect = container.getBoundingClientRect();
+            simCanvas.width = rect.width; simCanvas.height = rect.height;
+            starsCanvas.width = rect.width; starsCanvas.height = rect.height;
+            const graphRect = graphCanvas.parentElement.getBoundingClientRect();
+            graphCanvas.width = graphRect.width; graphCanvas.height = graphRect.height;
+            generateCinematicSpace();
+        }
+        window.addEventListener('resize', resizeCanvases);
+
+        function generateCinematicSpace() {
+            starsCtx.clearRect(0, 0, starsCanvas.width, starsCanvas.height);
+            
+            starsCtx.globalCompositeOperation = 'screen';
+            for(let i = 0; i < 4; i++) {
+                const cx = Math.random() * starsCanvas.width;
+                const cy = Math.random() * starsCanvas.height;
+                const r = Math.random() * 400 + 300; 
+                
+                const grad = starsCtx.createRadialGradient(cx, cy, 0, cx, cy, r);
+                const hue = Math.random() > 0.5 ? (Math.random() * 40 + 220) : (Math.random() * 30 + 270); 
+                
+                grad.addColorStop(0, `hsla(${hue}, 60%, 40%, 0.08)`);
+                grad.addColorStop(0.5, `hsla(${hue}, 50%, 30%, 0.03)`);
+                grad.addColorStop(1, `hsla(${hue}, 50%, 20%, 0)`);
+                
+                starsCtx.fillStyle = grad;
+                starsCtx.beginPath(); starsCtx.arc(cx, cy, r, 0, Math.PI * 2); starsCtx.fill();
+            }
+
+            starsCtx.globalCompositeOperation = 'source-over';
+            const starColors = ['#ffffff', '#ffffff', '#e0f2fe', '#ffedd5', '#fef08a']; 
+            
+            for (let i = 0; i < 1200; i++) {
+                let x = Math.random() * starsCanvas.width;
+                let y = Math.random() * starsCanvas.height;
+                let size = Math.random() * 0.8 + 0.2; 
+                let opacity = Math.random() * 0.7 + 0.1;
+                
+                starsCtx.globalAlpha = opacity;
+                starsCtx.fillStyle = starColors[Math.floor(Math.random() * starColors.length)];
+                
+                if(size > 0.7) {
+                    starsCtx.shadowBlur = 4;
+                    starsCtx.shadowColor = starsCtx.fillStyle;
+                } else {
+                    starsCtx.shadowBlur = 0;
+                }
+
+                starsCtx.beginPath();
+                starsCtx.arc(x, y, size, 0, Math.PI * 2);
+                starsCtx.fill();
+            }
+            starsCtx.shadowBlur = 0;
+            starsCtx.globalAlpha = 1.0;
+        }
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                oscillator = audioCtx.createOscillator();
+                gainNode = audioCtx.createGain();
+                oscillator.type = 'sine';
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.start();
+                gainNode.gain.value = 0;
+            }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function getPlanetPos(pData, t) {
+            const theta = (2 * Math.PI / pData.T) * t;
+            const r = (pData.R * (1 - pData.e * pData.e)) / (1 + pData.e * Math.cos(theta));
+            const x = r * Math.cos(theta);
+            const y = r * Math.sin(theta);
+            const z = r * Math.sin(pData.i) * Math.sin(theta); 
+            return { x, y, z, theta, r };
+        }
+
+        function updateSynodicData(p1Data, p2Data) {
+            if (p1Data.T === p2Data.T) synodicDisplay.innerText = "N/A";
+            else {
+                const synodic = Math.abs(1 / (1/p1Data.T - 1/p2Data.T));
+                synodicDisplay.innerText = `${synodic.toFixed(2)} Yrs`;
+            }
+        }
+
+        function resetSimulation() {
+            time = 0; drawnLines = []; distanceHistory = []; conjunctionCount = 0; lastAngleDiff = null;
+            isPlaying = false; playPauseBtn.innerText = "Play"; playPauseBtn.style.backgroundColor = "var(--accent)";
+            historyScrubber.max = 0; historyScrubber.value = 0;
+            conjunctionDisplay.innerText = "0";
+            
+            const p1 = p1Select.value, p2 = p2Select.value;
+            legP1Name.innerText = p1; legP1Color.style.background = planets[p1].color; legP1Color.style.color = planets[p1].color;
+            legP2Name.innerText = p2; legP2Color.style.background = planets[p2].color; legP2Color.style.color = planets[p2].color;
+            updateSynodicData(planets[p1], planets[p2]);
+        }
+
+        function drawGraph() {
+            graphCtx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
+            if (distanceHistory.length < 2) return;
+            const maxDist = Math.max(...distanceHistory) * 1.1;
+            const stepX = graphCanvas.width / 200;
+            graphCtx.beginPath(); graphCtx.strokeStyle = "#10b981"; graphCtx.lineWidth = 2;
+            for (let i = 0; i < distanceHistory.length; i++) {
+                let x = graphCanvas.width - ((distanceHistory.length - 1 - i) * stepX);
+                let y = graphCanvas.height - (distanceHistory[i] / maxDist) * graphCanvas.height;
+                if (i === 0) graphCtx.moveTo(x, y); else graphCtx.lineTo(x, y);
+            }
+            graphCtx.stroke();
+            graphCtx.lineTo(graphCanvas.width, graphCanvas.height);
+            graphCtx.lineTo(graphCanvas.width - (distanceHistory.length * stepX), graphCanvas.height);
+            graphCtx.fillStyle = "rgba(16, 185, 129, 0.1)"; graphCtx.fill();
+        }
+
+        function draw() {
+            const p1Data = planets[p1Select.value], p2Data = planets[p2Select.value];
+            const frame = refFrameSelect.value;
+            
+            if (isPlaying) {
+                time += parseFloat(speedSlider.value);
+                
+                const target = parseFloat(targetYearsInput.value);
+                if (!isNaN(target) && target > 0 && time >= target) {
+                    time = target; 
+                    isPlaying = false;
+                    playPauseBtn.innerText = "Play";
+                    playPauseBtn.style.backgroundColor = "var(--accent)";
+                    if (gainNode) gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+                }
+
+                let rawP1 = getPlanetPos(p1Data, time);
+                let rawP2 = getPlanetPos(p2Data, time);
+                
+                let sunPos, p1Pos, p2Pos;
+                if (frame === 'heliocentric') {
+                    sunPos = { x: 0, y: 0, z: 0 }; p1Pos = rawP1; p2Pos = rawP2;
+                } else {
+                    p1Pos = { x: 0, y: 0, z: 0 };
+                    sunPos = { x: -rawP1.x, y: -rawP1.y, z: -rawP1.z };
+                    p2Pos = { x: sunPos.x + rawP2.x, y: sunPos.y + rawP2.y, z: sunPos.z + rawP2.z };
+                }
+
+                const dist = Math.hypot(p1Pos.x - p2Pos.x, p1Pos.y - p2Pos.y);
+                
+                let currentAngleDiff = (rawP1.theta - rawP2.theta) % (2 * Math.PI);
+                if (currentAngleDiff < 0) currentAngleDiff += 2 * Math.PI;
+                if (lastAngleDiff !== null && Math.abs(currentAngleDiff - lastAngleDiff) > Math.PI) {
+                    conjunctionCount++;
+                    conjunctionDisplay.innerText = conjunctionCount;
+                }
+                lastAngleDiff = currentAngleDiff;
+
+                const maxDistPossible = p1Data.R * (1+p1Data.e) + p2Data.R * (1+p2Data.e);
+                const minDistPossible = Math.abs(p1Data.R * (1-p1Data.e) - p2Data.R * (1-p2Data.e));
+                const normDist = Math.max(0, Math.min(1, (dist - minDistPossible) / (maxDistPossible - minDistPossible || 1)));
+                const hue = 180 + (normDist * 100); 
+                
+                if (audioToggle.checked && gainNode) {
+                    oscillator.frequency.value = 150 + (1 - normDist) * 300; 
+                    gainNode.gain.setTargetAtTime(0.05, audioCtx.currentTime, 0.1);
+                }
+
+                const zFade = (p1Pos.z + p2Pos.z) / 2; 
+
+                drawnLines.push({ x1: p1Pos.x, y1: p1Pos.y, x2: p2Pos.x, y2: p2Pos.y, hue: hue, z: zFade });
+                distanceHistory.push(dist);
+                if (distanceHistory.length > 200) distanceHistory.shift();
+
+                historyScrubber.max = drawnLines.length - 1;
+                historyScrubber.value = drawnLines.length - 1;
+
+                if (autoRemoveCheckbox.checked) {
+                    const maxHistory = parseInt(maxLinesSlider.value);
+                    while (drawnLines.length > maxHistory) drawnLines.shift();
+                }
+
+            } else if (gainNode) {
+                gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1); 
+            }
+
+            simTimeDisplay.innerText = `Time: ${time.toFixed(2)} Years`;
+            ctx.clearRect(0, 0, simCanvas.width, simCanvas.height);
+
+            const maxR = Math.max(p1Data.R * (1+p1Data.e), p2Data.R * (1+p2Data.e));
+            const neededRadius = frame === 'heliocentric' ? maxR : (p1Data.R*(1+p1Data.e) + p2Data.R*(1+p2Data.e));
+            const minDim = Math.min(simCanvas.width, simCanvas.height);
+            const scale = (minDim / 2) / (neededRadius * 1.15); 
+            const cx = simCanvas.width / 2, cy = simCanvas.height / 2;
+
+            drawGraph();
+
+            if (frame === 'heliocentric') {
+                ctx.beginPath(); ctx.arc(cx, cy, p1Data.R * scale, 0, 2 * Math.PI); ctx.strokeStyle = "rgba(255,255,255,0.08)"; ctx.stroke();
+                ctx.beginPath(); ctx.arc(cx, cy, p2Data.R * scale, 0, 2 * Math.PI); ctx.stroke();
+            }
+
+            const scrubIndex = isPlaying ? drawnLines.length : parseInt(historyScrubber.value) + 1;
+            const linesToDraw = drawnLines.slice(0, scrubIndex);
+
+            ctx.lineWidth = 0.6;
+            linesToDraw.forEach((line) => {
+                ctx.beginPath();
+                ctx.moveTo(cx + line.x1 * scale, cy + line.y1 * scale);
+                ctx.lineTo(cx + line.x2 * scale, cy + line.y2 * scale);
+                const alpha = Math.max(0.05, Math.min(0.4, 0.3 - (line.z * 0.1))); 
+                ctx.strokeStyle = `hsla(${line.hue}, 100%, 75%, ${alpha})`;
+                ctx.stroke();
+            });
+
+            if (linesToDraw.length > 0) {
+                const last = linesToDraw[linesToDraw.length - 1];
+                ctx.beginPath();
+                ctx.moveTo(cx + last.x1 * scale, cy + last.y1 * scale);
+                ctx.lineTo(cx + last.x2 * scale, cy + last.y2 * scale);
+                ctx.strokeStyle = `hsl(${last.hue}, 100%, 90%)`;
+                ctx.lineWidth = 2.5;
+                ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 12;
+                ctx.stroke();
+                ctx.shadowBlur = 0; ctx.lineWidth = 0.6; 
+            }
+
+            let curSun, curP1, curP2;
+            if (!isPlaying && linesToDraw.length > 0) {
+                const last = linesToDraw[linesToDraw.length - 1];
+                curP1 = {x: last.x1, y: last.y1}; curP2 = {x: last.x2, y: last.y2};
+                curSun = frame === 'heliocentric' ? {x:0, y:0} : {x: -last.x1, y: -last.y1};
+            } else {
+                let rP1 = getPlanetPos(p1Data, time), rP2 = getPlanetPos(p2Data, time);
+                if (frame === 'heliocentric') { curSun = {x:0,y:0}; curP1 = rP1; curP2 = rP2; } 
+                else { curP1 = {x:0,y:0}; curSun = {x:-rP1.x, y:-rP1.y}; curP2 = {x: curSun.x + rP2.x, y: curSun.y + rP2.y}; }
+            }
+
+            function drawBody(pos, color, radius) {
+                ctx.beginPath(); ctx.arc(cx + pos.x * scale, cy + pos.y * scale, radius, 0, 2 * Math.PI);
+                ctx.fillStyle = color; ctx.shadowColor = color; ctx.shadowBlur = 20;
+                ctx.fill(); ctx.shadowBlur = 0; 
+            }
+            
+            drawBody(curSun, "#fbbf24", 10);
+            drawBody(curP1, p1Data.color, 5.5);
+            drawBody(curP2, p2Data.color, 5.5);
+
+            animationId = requestAnimationFrame(draw);
+        }
+
+        presetSelect.addEventListener('change', (e) => {
+            if (e.target.value === "earth_venus") { p1Select.value = "Earth"; p2Select.value = "Venus"; }
+            else if (e.target.value === "jupiter_saturn") { p1Select.value = "Jupiter"; p2Select.value = "Saturn"; }
+            else if (e.target.value === "uranus_neptune") { p1Select.value = "Uranus"; p2Select.value = "Neptune"; }
+            resetSimulation();
+        });
+        
+        p1Select.addEventListener('change', () => { presetSelect.value = "custom"; resetSimulation(); });
+        p2Select.addEventListener('change', () => { presetSelect.value = "custom"; resetSimulation(); });
+        refFrameSelect.addEventListener('change', resetSimulation);
+        
+        maxLinesSlider.addEventListener('input', (e) => {
+            linesDisplay.innerText = e.target.value;
+            if (autoRemoveCheckbox.checked) {
+                while (drawnLines.length > parseInt(e.target.value)) drawnLines.shift();
+            }
+        });
+
+        historyScrubber.addEventListener('input', () => {
+            if (isPlaying) playPauseBtn.click(); 
+        });
+
+        clearBtn.addEventListener('click', () => { 
+            drawnLines = []; 
+            distanceHistory = []; 
+            time = 0;
+            conjunctionCount = 0;
+            conjunctionDisplay.innerText = "0";
+        });
+
+        audioToggle.addEventListener('change', () => { if (audioToggle.checked) initAudio(); });
+
+        playPauseBtn.addEventListener('click', () => {
+            if (!isPlaying && targetYearsInput.value && time >= parseFloat(targetYearsInput.value)) {
+                targetYearsInput.value = ''; 
+            }
+            isPlaying = !isPlaying;
+            playPauseBtn.innerText = isPlaying ? "Pause" : "Play";
+            playPauseBtn.style.backgroundColor = isPlaying ? "#ef4444" : "var(--accent)";
+            if (isPlaying && audioToggle.checked) initAudio();
+            
+            if (isPlaying && historyScrubber.value < drawnLines.length - 1) {
+                drawnLines = drawnLines.slice(0, parseInt(historyScrubber.value) + 1);
+            }
+        });
+
+        exportBtn.addEventListener('click', () => {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = simCanvas.width; tempCanvas.height = simCanvas.height;
+            const tCtx = tempCanvas.getContext('2d');
+            
+            const grad = tCtx.createRadialGradient(tempCanvas.width/2, tempCanvas.height/2, 0, tempCanvas.width/2, tempCanvas.height/2, tempCanvas.width);
+            grad.addColorStop(0, '#111827'); grad.addColorStop(1, '#030712');
+            tCtx.fillStyle = grad; tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            
+            tCtx.drawImage(starsCanvas, 0, 0); 
+            tCtx.globalCompositeOperation = 'screen';
+            tCtx.drawImage(simCanvas, 0, 0);
+            tCtx.globalCompositeOperation = 'source-over';
+            
+            const legX = tempCanvas.width - 220, legY = 30;
+            tCtx.fillStyle = "rgba(15, 23, 42, 0.85)";
+            tCtx.beginPath(); tCtx.roundRect(legX, legY, 190, 140, 12); tCtx.fill();
+            tCtx.strokeStyle = "rgba(255,255,255,0.2)"; tCtx.stroke();
+            
+            tCtx.font = "bold 16px system-ui"; tCtx.fillStyle = "#fff";
+            tCtx.fillText(`Time: ${time.toFixed(2)} Years`, legX + 20, legY + 30);
+            
+            tCtx.font = "16px system-ui";
+            tCtx.fillStyle = "#fbbf24"; tCtx.beginPath(); tCtx.arc(legX + 25, legY + 65, 6, 0, Math.PI*2); tCtx.fill();
+            tCtx.fillStyle = "#fff"; tCtx.fillText("Sun", legX + 45, legY + 70);
+            
+            tCtx.fillStyle = planets[p1Select.value].color; tCtx.beginPath(); tCtx.arc(legX + 25, legY + 95, 6, 0, Math.PI*2); tCtx.fill();
+            tCtx.fillStyle = "#fff"; tCtx.fillText(p1Select.value, legX + 45, legY + 100);
+            
+            tCtx.fillStyle = planets[p2Select.value].color; tCtx.beginPath(); tCtx.arc(legX + 25, legY + 125, 6, 0, Math.PI*2); tCtx.fill();
+            tCtx.fillStyle = "#fff"; tCtx.fillText(p2Select.value, legX + 45, legY + 130);
+
+            const link = document.createElement('a');
+            link.download = `Cosmic_Choreography_${p1Select.value}_${p2Select.value}.png`;
+            link.href = tempCanvas.toDataURL('image/png');
+            link.click();
+        });
+
+        recordBtn.addEventListener('click', () => {
+            if (!isRecording) {
+                const stream = simCanvas.captureStream(30); 
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+                mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a'); a.href = url; a.download = 'cosmic_choreography.webm'; a.click();
+                    recordedChunks = [];
+                };
+                mediaRecorder.start();
+                isRecording = true;
+                recordBtn.innerText = "Stop Recording";
+                recordBtn.classList.add("recording");
+                if(!isPlaying) playPauseBtn.click(); 
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                recordBtn.innerText = "Record Video";
+                recordBtn.classList.remove("recording");
+            }
+        });
+
+        resizeCanvases(); resetSimulation(); draw(); 
+    </script>
+</body>
+</html>
