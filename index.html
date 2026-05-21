@@ -29,7 +29,7 @@
             border-right: 1px solid var(--border); padding: 24px;
             display: flex; flex-direction: column; gap: 15px;
             overflow-y: auto; box-shadow: 4px 0 30px rgba(0,0,0,0.9);
-            z-index: 10; backdrop-filter: blur(15px);
+            z-index: 30; backdrop-filter: blur(15px);
         }
 
         .controls::-webkit-scrollbar { width: 6px; }
@@ -96,29 +96,18 @@
             100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
 
-        /* Credits Footer */
         .credits-footer {
-            margin-top: auto;
-            padding-top: 15px;
+            margin-top: auto; padding-top: 15px;
             border-top: 1px solid var(--border);
-            font-size: 11px;
-            color: rgba(148, 163, 184, 0.7);
-            text-align: center;
-            line-height: 1.6;
+            font-size: 11px; color: rgba(148, 163, 184, 0.7);
+            text-align: center; line-height: 1.6;
         }
-        .credits-footer a {
-            color: var(--accent);
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-        .credits-footer a:hover {
-            color: var(--accent-hover);
-            text-decoration: underline;
-        }
+        .credits-footer a { color: var(--accent); text-decoration: none; transition: color 0.2s; }
+        .credits-footer a:hover { color: var(--accent-hover); text-decoration: underline; }
         .credits-footer p { margin: 4px 0; }
 
         /* Workspace & Canvas */
-        .workspace { flex: 1; position: relative; display: flex; flex-direction: column; }
+        .workspace { flex: 1; position: relative; display: flex; flex-direction: column; width: 100%; }
         .canvas-container { flex: 1; position: relative; overflow: hidden; }
         canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
         #starsCanvas { z-index: 0; }
@@ -140,7 +129,7 @@
         .bottom-panel {
             height: 140px; background: rgba(10, 15, 25, 0.85);
             border-top: 1px solid rgba(255,255,255,0.1); display: flex; z-index: 5;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px); flex-shrink: 0;
         }
         .graph-container { flex: 1; padding: 10px 20px; display: flex; flex-direction: column; position: relative; }
         .data-panel {
@@ -150,11 +139,98 @@
         .panel-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 5px; }
         .data-value { font-size: 22px; font-weight: bold; color: var(--accent); margin-bottom: 10px; text-shadow: 0 0 10px rgba(56, 189, 248, 0.3); }
         #distanceGraph { flex: 1; width: 100%; height: 100%; position: relative; }
+
+        /* -------------------------------------------
+           NEW MOBILE RESPONSIVE UI STYLES
+        ---------------------------------------------- */
+        
+        .mobile-menu-btn {
+            display: none;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 15;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 12px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            transition: all 0.2s;
+        }
+        .mobile-menu-btn:hover { background: var(--accent); color: white; }
+
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 20;
+            backdrop-filter: blur(4px);
+        }
+        .mobile-overlay.active { display: block; }
+
+        @media (max-width: 850px) {
+            .mobile-menu-btn { display: block; }
+            
+            /* Turn sidebar into a slide-out drawer */
+            .controls {
+                position: fixed;
+                top: 0; 
+                left: -100%; /* Hidden by default */
+                height: 100%; 
+                width: 320px; 
+                max-width: 85vw;
+                transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            
+            .controls.open { left: 0; }
+
+            /* Scale down legend */
+            .legend {
+                top: 20px; right: 20px;
+                padding: 15px;
+                transform: scale(0.85);
+                transform-origin: top right;
+            }
+
+            /* Stack bottom telemetry panel */
+            .bottom-panel {
+                flex-direction: column;
+                height: auto;
+            }
+            .graph-container {
+                height: 120px; 
+                border-bottom: 1px solid rgba(255,255,255,0.1);
+            }
+            .data-panel {
+                width: 100%;
+                border-left: none;
+                flex-direction: row;
+                justify-content: space-around;
+                padding: 15px;
+            }
+            .data-panel .data-value { margin-bottom: 0; font-size: 18px; }
+        }
+
+        @media (max-width: 500px) {
+            .legend { transform: scale(0.7); }
+            .mobile-menu-btn { top: 15px; left: 15px; padding: 8px 14px; font-size: 10px; }
+        }
     </style>
 </head>
 <body>
 
-    <div class="controls">
+    <div id="mobileOverlay" class="mobile-overlay"></div>
+
+    <div class="controls" id="controlsPanel">
         <h2>Cosmic Choreography</h2>
         <div class="author-caption">built by Chandrakamal</div>
         
@@ -228,7 +304,6 @@
             <button class="record" id="recordBtn">Record Video</button>
         </div>
 
-        <!-- NEW CREDITS FOOTER -->
         <div class="credits-footer">
             <p>Contact: <a href="mailto:chandrakamal303@gmail.com">chandrakamal303@gmail.com</a></p>
             <p>Repo: <a href="https://github.com/Chandrakamal07/Planetary-Path-Tracing" target="_blank">GitHub</a></p>
@@ -237,6 +312,9 @@
     </div>
 
     <div class="workspace">
+        
+        <button id="mobileMenuBtn" class="mobile-menu-btn">☰ Controls</button>
+
         <div class="canvas-container" id="canvasContainer">
             <canvas id="starsCanvas"></canvas>
             <canvas id="simCanvas"></canvas>
@@ -261,10 +339,14 @@
                 <canvas id="distanceGraph"></canvas>
             </div>
             <div class="data-panel">
-                <div class="panel-title">Synodic Period</div>
-                <div class="data-value" id="synodicDisplay">0.00 Yrs</div>
-                <div class="panel-title">Conjunctions</div>
-                <div class="data-value" id="conjunctionDisplay">0</div>
+                <div>
+                    <div class="panel-title">Synodic Period</div>
+                    <div class="data-value" id="synodicDisplay">0.00 Yrs</div>
+                </div>
+                <div>
+                    <div class="panel-title">Conjunctions</div>
+                    <div class="data-value" id="conjunctionDisplay">0</div>
+                </div>
             </div>
         </div>
     </div>
@@ -302,17 +384,35 @@
         const legP1Color = document.getElementById('legP1Color'), legP1Name = document.getElementById('legP1Name');
         const legP2Color = document.getElementById('legP2Color'), legP2Name = document.getElementById('legP2Name');
 
+        // Mobile Menu Variables
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const controlsPanel = document.getElementById('controlsPanel');
+        const mobileOverlay = document.getElementById('mobileOverlay');
+
         let time = 0, isPlaying = false; 
         let drawnLines = [], distanceHistory = [];
         let animationId;
         let conjunctionCount = 0, lastAngleDiff = null;
 
-        let audioCtx, oscillator, gainNode;
+        let ambientAudio = new Audio('u_7hpxkdroz2-space-461600.mp3');
+        ambientAudio.loop = true;
+
         let mediaRecorder, recordedChunks = [], isRecording = false;
 
         Object.keys(planets).forEach(p => {
             p1Select.add(new Option(p, p, false, p === "Earth"));
             p2Select.add(new Option(p, p, false, p === "Venus"));
+        });
+
+        // Mobile Menu Event Listeners
+        mobileMenuBtn.addEventListener('click', () => {
+            controlsPanel.classList.add('open');
+            mobileOverlay.classList.add('active');
+        });
+
+        mobileOverlay.addEventListener('click', () => {
+            controlsPanel.classList.remove('open');
+            mobileOverlay.classList.remove('active');
         });
 
         function resizeCanvases() {
@@ -372,20 +472,6 @@
             starsCtx.globalAlpha = 1.0;
         }
 
-        function initAudio() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                oscillator = audioCtx.createOscillator();
-                gainNode = audioCtx.createGain();
-                oscillator.type = 'sine';
-                oscillator.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                oscillator.start();
-                gainNode.gain.value = 0;
-            }
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-        }
-
         function getPlanetPos(pData, t) {
             const theta = (2 * Math.PI / pData.T) * t;
             const r = (pData.R * (1 - pData.e * pData.e)) / (1 + pData.e * Math.cos(theta));
@@ -413,6 +499,12 @@
             legP1Name.innerText = p1; legP1Color.style.background = planets[p1].color; legP1Color.style.color = planets[p1].color;
             legP2Name.innerText = p2; legP2Color.style.background = planets[p2].color; legP2Color.style.color = planets[p2].color;
             updateSynodicData(planets[p1], planets[p2]);
+            
+            // Close mobile menu automatically on selection if open
+            if(window.innerWidth <= 850 && controlsPanel.classList.contains('open')) {
+                 controlsPanel.classList.remove('open');
+                 mobileOverlay.classList.remove('active');
+            }
         }
 
         function drawGraph() {
@@ -445,7 +537,7 @@
                     isPlaying = false;
                     playPauseBtn.innerText = "Play";
                     playPauseBtn.style.backgroundColor = "var(--accent)";
-                    if (gainNode) gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+                    ambientAudio.pause();
                 }
 
                 let rawP1 = getPlanetPos(p1Data, time);
@@ -474,11 +566,6 @@
                 const minDistPossible = Math.abs(p1Data.R * (1-p1Data.e) - p2Data.R * (1-p2Data.e));
                 const normDist = Math.max(0, Math.min(1, (dist - minDistPossible) / (maxDistPossible - minDistPossible || 1)));
                 const hue = 180 + (normDist * 100); 
-                
-                if (audioToggle.checked && gainNode) {
-                    oscillator.frequency.value = 150 + (1 - normDist) * 300; 
-                    gainNode.gain.setTargetAtTime(0.05, audioCtx.currentTime, 0.1);
-                }
 
                 const zFade = (p1Pos.z + p2Pos.z) / 2; 
 
@@ -494,8 +581,6 @@
                     while (drawnLines.length > maxHistory) drawnLines.shift();
                 }
 
-            } else if (gainNode) {
-                gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1); 
             }
 
             simTimeDisplay.innerText = `Time: ${time.toFixed(2)} Years`;
@@ -593,7 +678,13 @@
             conjunctionDisplay.innerText = "0";
         });
 
-        audioToggle.addEventListener('change', () => { if (audioToggle.checked) initAudio(); });
+        audioToggle.addEventListener('change', () => { 
+            if (audioToggle.checked && isPlaying) {
+                ambientAudio.play();
+            } else {
+                ambientAudio.pause();
+            }
+        });
 
         playPauseBtn.addEventListener('click', () => {
             if (!isPlaying && targetYearsInput.value && time >= parseFloat(targetYearsInput.value)) {
@@ -602,7 +693,12 @@
             isPlaying = !isPlaying;
             playPauseBtn.innerText = isPlaying ? "Pause" : "Play";
             playPauseBtn.style.backgroundColor = isPlaying ? "#ef4444" : "var(--accent)";
-            if (isPlaying && audioToggle.checked) initAudio();
+            
+            if (isPlaying && audioToggle.checked) {
+                ambientAudio.play();
+            } else {
+                ambientAudio.pause();
+            }
             
             if (isPlaying && historyScrubber.value < drawnLines.length - 1) {
                 drawnLines = drawnLines.slice(0, parseInt(historyScrubber.value) + 1);
