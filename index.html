@@ -224,9 +224,68 @@
             .legend { transform: scale(0.7); }
             .mobile-menu-btn { top: 15px; left: 15px; padding: 8px 14px; font-size: 10px; }
         }
+
+        /* -------------------------------------------
+           INTRO MODAL STYLES
+        ---------------------------------------------- */
+        .intro-modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(3, 7, 18, 0.85); /* Dark cinematic backdrop */
+            backdrop-filter: blur(8px);
+            z-index: 100; /* Stays on top of everything */
+            display: flex; justify-content: center; align-items: center;
+            opacity: 1; transition: opacity 0.5s ease;
+        }
+        .intro-modal-overlay.hidden {
+            opacity: 0; pointer-events: none;
+        }
+        .intro-modal {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid var(--accent);
+            box-shadow: 0 0 40px rgba(56, 189, 248, 0.15);
+            padding: 40px; border-radius: 16px;
+            max-width: 600px; width: 85%;
+            text-align: center; color: var(--text-color);
+        }
+        .intro-modal h1 { 
+            color: #fff; margin-top: 0; font-size: 24px; 
+            letter-spacing: 2px; text-transform: uppercase; 
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+        }
+        .intro-modal p { 
+            line-height: 1.6; color: #cbd5e1; font-size: 15px; 
+            margin-bottom: 20px; text-align: left;
+        }
+        .intro-modal p.disclaimer {
+            font-style: italic; color: #94a3b8; font-size: 13px; text-align: center;
+        }
+        .intro-modal button {
+            padding: 14px 35px; font-size: 14px; margin-top: 10px;
+            background: var(--accent); color: #fff;
+            border: none; border-radius: 8px; cursor: pointer;
+            text-transform: uppercase; font-weight: bold; letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+        .intro-modal button:hover { 
+            background: var(--accent-hover); 
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.6); 
+        }
     </style>
 </head>
 <body>
+
+    <div id="introModal" class="intro-modal-overlay">
+        <div class="intro-modal">
+            <h1>The Cosmic Lotus</h1>
+            <p>"In Hindu Puranas and Vedas, it is described that as Lord Vishnu reposes on the serpent Shesha in the cosmic ocean, a radiant lotus sprouts from his navel (Nabhi), bearing Lord Brahma, who then proceeds to create the universe. This event represents the emergence of form from the formless."</p>
+            
+            <p>This concept inspired me to think about cosmic patterns: what if I tracked planetary paths relative to Earth over time? The result: the orbital resonance of these celestial bodies draws magnificent, mathematically perfect flower designs.</p>
+            
+            <p class="disclaimer">I am not publishing this as a definitive scientific conclusion, but rather exploring the beautiful similarities to ancient Hindu philosophy, which metaphorically suggests the universe itself is a grand creation.</p>
+            
+            <button id="enterSimBtn">Enter Simulation</button>
+        </div>
+    </div>
 
     <div id="mobileOverlay" class="mobile-overlay"></div>
 
@@ -765,6 +824,19 @@
                 recordBtn.innerText = "Record Video";
                 recordBtn.classList.remove("recording");
             }
+        });
+
+        // Handle the Intro Modal
+        document.getElementById('enterSimBtn').addEventListener('click', () => {
+            document.getElementById('introModal').classList.add('hidden');
+            
+            // Automatically start the Earth/Venus simulation
+            presetSelect.value = "earth_venus";
+            p1Select.value = "Earth"; 
+            p2Select.value = "Venus";
+            resetSimulation();
+            
+            if (!isPlaying) playPauseBtn.click();
         });
 
         resizeCanvases(); resetSimulation(); draw(); 
