@@ -830,12 +830,11 @@
         document.getElementById('enterSimBtn').addEventListener('click', () => {
             document.getElementById('introModal').classList.add('hidden');
             
-            // Automatically start the Earth/Venus simulation
+            // Pre-loads the Earth/Venus preset, but waits for the user to press Play
             presetSelect.value = "earth_venus";
             p1Select.value = "Earth"; 
             p2Select.value = "Venus";
             resetSimulation();
-            
         });
 
         resizeCanvases(); resetSimulation(); draw(); 
